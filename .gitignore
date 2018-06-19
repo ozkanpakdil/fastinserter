@@ -1,0 +1,9 @@
+.idea/
+/.gradle/
+/bin/
+/build/
+/com.test.tar.gz
+/hsqldbfastsol/
+/output.sql
+/sample.json
+/sample2.json
