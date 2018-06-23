@@ -13,7 +13,7 @@ import java.time.Instant;
 import java.util.Random;
 
 public class GenerateSampleJson {
-    static int objectCount = 100000;
+    static int objectCount = 100000000;
 
     public static void main(String[] args) throws Exception {
         Random r = new Random();
@@ -21,7 +21,7 @@ public class GenerateSampleJson {
         String type = "APPLICATION_LOG";
         long startTime = System.nanoTime();
         int i = objectCount;
-        Path path = Paths.get("sample2.json");
+        Path path = Paths.get("sample.json");
         try (BufferedWriter writer = Files.newBufferedWriter(path)) {
             while (i-- > 0) {
                 String id = RandomStringUtils.randomAlphabetic(10);
