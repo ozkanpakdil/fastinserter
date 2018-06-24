@@ -1,14 +1,8 @@
 package EPTFAssignment.solver;
 
-import com.google.gson.annotations.Expose;
-
-
 public class ServerEvent {
-    @Expose
     String id, state, type, host;
-    @Expose
     Long timestamp;
-    @Expose
     Boolean alert=null;
 
     public ServerEvent(String id, String state, Long timestamp, String type, String host, Boolean alert) {

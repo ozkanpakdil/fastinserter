@@ -16,6 +16,7 @@ latest test with 8gb file took 33m. therefore spring boot beaten by 3 minutes :)
 ./gradlew -PmainClass=FasterSolution -Pargs=sample.json execute -Dorg.gradle.jvmargs="-Xmx4g -XX:+UseG1GC -XX:+UseStringDeduplication"
 
 
-For proper testing I implemented a json generator. you can easily generate 16gb json file. took 7 minutes in my laptop to run command beelow
+For proper testing I implemented a json generator. you can easily generate 16gb json file. took 7 minutes in my laptop to run command below
+after gson cleared I re-run the command and it took 5.23 minutes.
 ./gradlew -PmainClass=data.generator.GenerateSampleJson execute -Pargs= -Dorg.gradle.jvmargs="-Xmx4g -XX:+UseG1GC -XX:+UseStringDeduplication"
 

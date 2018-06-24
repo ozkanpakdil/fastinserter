@@ -1,9 +1,10 @@
 package data.generator;
 
-import EPTFAssignment.solver.GsonUtils;
 import EPTFAssignment.solver.ServerEvent;
 import org.apache.commons.lang3.CharUtils;
 import org.apache.commons.lang3.RandomStringUtils;
+
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 import java.io.BufferedWriter;
 import java.nio.file.Files;
@@ -21,6 +22,7 @@ public class GenerateSampleJson {
         String type = "APPLICATION_LOG";
         long startTime = System.nanoTime();
         int i = objectCount;
+        ObjectMapper mapper = new ObjectMapper();
         Path path = Paths.get("sample.json");
         try (BufferedWriter writer = Files.newBufferedWriter(path)) {
             while (i-- > 0) {
@@ -28,10 +30,9 @@ public class GenerateSampleJson {
                 Instant instant = Instant.now();
                 long timestamp = instant.toEpochMilli();
                 ServerEvent se = new ServerEvent(id, "STARTED", timestamp, type, host);
-                writer.write(GsonUtils.getInstance().toJson(se) + System.lineSeparator());
-
+                writer.write(mapper.writeValueAsString(se) + System.lineSeparator());
                 se = new ServerEvent(id, "FINISHED", timestamp + r.nextInt(10), null, null);
-                writer.write(GsonUtils.getInstance().toJson(se) + System.lineSeparator());
+                writer.write(mapper.writeValueAsString(se) + System.lineSeparator());
             }
         }
         long elapsedTime = System.nanoTime() - startTime;

@@ -18,42 +18,33 @@ import org.apache.commons.io.LineIterator;
 import org.json.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.stereotype.Component;
 
 import EPTFAssignment.solver.ServerEvent;
 
+@Component
 public class FasterSolution {
 	private static final Logger log = LoggerFactory.getLogger(FasterSolution.class);
-	private static String inFilePath;
-	static ConcurrentMap<String, ServerEvent> eventsFromFile = new ConcurrentHashMap<>();
-	static int cpuCount = Runtime.getRuntime().availableProcessors();
+	private String inFilePath;
+	ConcurrentMap<String, ServerEvent> eventsFromFile = new ConcurrentHashMap<>();
+	int cpuCount = Runtime.getRuntime().availableProcessors();
 	// static Queue<String>[] idQueue = new ConcurrentLinkedQueue[cpuCount];
 	// private final static LinkedBlockingQueue<String>[] idQueue = new
 	// LinkedBlockingQueue[cpuCount];
 	// private final static ArrayBlockingQueue<String> idQueue = new
 	// ArrayBlockingQueue(cpuCount*100000);
-	private final static ArrayBlockingQueue<String>[] idQueue = new ArrayBlockingQueue[cpuCount];
+	ArrayBlockingQueue<String>[] idQueue = new ArrayBlockingQueue[cpuCount];
 
-	static Connection conn;
-	static String dbFileName = "./hsqldbfastsol/data;hsqldb.log_data=false;hsqldb.default_table_type=CACHED;hsqldb.nio_data_file=true;hsqldb.nio_max_size=1024m";
-	static Statement st = null;
-	static int dbCounter = 0;
-	static Thread readerThread = null;
-	static BufferedWriter writer = null;
-	static ThreadPoolExecutor executor = null;
+	Connection conn;
+	String dbFileName = "./hsqldbfastsol/data;hsqldb.log_data=false;hsqldb.default_table_type=CACHED;hsqldb.nio_data_file=true;hsqldb.nio_max_size=1024m";
+	Statement st = null;
+	int dbCounter = 0;
+	Thread readerThread = null;
+	ThreadPoolExecutor executor = null;
 
-	public static void main(String[] args) throws Exception {
-		if (args.length == 0) {
-			log.error("Json file path not provided.");
-			System.exit(1);
-		}
+	public void run(String[] args) throws Exception {
 		inFilePath = args[0];
 		File inFile = new File(inFilePath);
-		if (!inFile.exists()) {
-			log.error("Json file does not exist. Provided Path:" + inFilePath);
-			System.exit(2);
-		}
-		//writer = new BufferedWriter(new FileWriter("output.sql"));
-
 		openDbConnection();
 		try {
 			st.execute("SET FILES LOG FALSE;DROP TABLE event IF EXISTS;\n" + "CREATE TABLE IF NOT EXISTS event (\n"
@@ -83,14 +74,14 @@ public class FasterSolution {
 				for (int i = 0; i < cpuCount; i++)
 					startDBInserter(i);
 		}
-conn.commit();
+		conn.commit();
 		ResultSet r = st.executeQuery("SELECT COUNT(*) FROM event");
 		r.next();
 		log.info("object count in db " + r.getString(1));
 		shutdownDB();
 	}
 
-	private static void process(String id) {
+	void process(String id) {
 		ServerEvent seStarted = eventsFromFile.get(id + "STARTED");
 		ServerEvent seFinished = eventsFromFile.get(id + "FINISHED");
 
@@ -111,7 +102,7 @@ conn.commit();
 		}
 	}
 
-	private static void startDBInserter(int threadId) throws Exception {
+	void startDBInserter(int threadId) throws Exception {
 		if (executor.getQueue().size() < cpuCount) {
 			Runnable task = () -> {
 				try {
@@ -137,7 +128,7 @@ conn.commit();
 		}
 	}
 
-	public static void openDbConnection() {
+	public void openDbConnection() {
 		try {
 			Class.forName("org.hsqldb.jdbcDriver");
 			conn = DriverManager.getConnection("jdbc:hsqldb:file:" + dbFileName, "SA", "");
@@ -148,7 +139,7 @@ conn.commit();
 		}
 	}
 
-	public static void insert(String expression) {
+	public void insert(String expression) {
 		// try {
 		// writer.write(expression + "\n");
 		// } catch (IOException e) {
@@ -160,10 +151,10 @@ conn.commit();
 		try {
 			// st.execute(expression);
 			st.addBatch(expression);
-			if (++dbCounter % (cpuCount * 1000) == 0){
+			if (++dbCounter % (cpuCount * 1000) == 0) {
 				st.executeBatch();
-                conn.commit();
-            }
+				conn.commit();
+			}
 		} catch (SQLException e) {
 			log.error(expression);
 			e.printStackTrace();
@@ -172,7 +163,7 @@ conn.commit();
 
 	}
 
-	public static void shutdownDB() {
+	public void shutdownDB() {
 		Statement st;
 		try {
 			st = conn.createStatement();
@@ -183,7 +174,7 @@ conn.commit();
 		}
 	}
 
-	private static void startFileReader(File inFile) throws Exception {
+	void startFileReader(File inFile) throws Exception {
 		Runnable task = () -> {
 			try {
 				LineIterator it = FileUtils.lineIterator(inFile, "UTF-8");
@@ -201,11 +192,11 @@ conn.commit();
 								null);
 
 					eventsFromFile.putIfAbsent(se.getId() + se.getState(), se);
-					//if (!idQueue[threadId].contains(se.getId()))
-						idQueue[threadId].put(se.getId());
+					// if (!idQueue[threadId].contains(se.getId()))
+					idQueue[threadId].put(se.getId());
 					if (++lineCounter % (cpuCount * 10000) == 0) {
 						log.info("Filereader at line:" + lineCounter);
-						//Thread.sleep(eventsFromFile.size() / 10);
+						// Thread.sleep(eventsFromFile.size() / 10);
 					}
 					se = null;
 				}

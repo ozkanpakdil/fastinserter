@@ -26,11 +26,11 @@ repositories {
 dependencies {
     compile("org.springframework.boot:spring-boot-starter-batch")
     compile("org.hsqldb:hsqldb")
-    compile 'com.google.code.gson:gson' //can be cleaned after all tests
     compile 'org.apache.commons:commons-lang3'
     compile 'org.json:json:20180130'
     compile 'commons-io:commons-io:2.6'
     testCompile("org.springframework.boot:spring-boot-starter-test")
+    compile 'org.junit.jupiter:junit-jupiter-api'
 }
 
 bootRun {
