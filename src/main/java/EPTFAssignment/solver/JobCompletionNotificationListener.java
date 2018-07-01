@@ -12,30 +12,23 @@ import org.springframework.stereotype.Component;
 @Component
 public class JobCompletionNotificationListener extends JobExecutionListenerSupport {
 
-    private static final Logger log = LoggerFactory.getLogger(JobCompletionNotificationListener.class);
+	private static final Logger log = LoggerFactory.getLogger(JobCompletionNotificationListener.class);
 
-    private final JdbcTemplate jdbcTemplate;
+	private final JdbcTemplate jdbcTemplate;
 
-    @Autowired
-    public JobCompletionNotificationListener(JdbcTemplate jdbcTemplate) {
-        this.jdbcTemplate = jdbcTemplate;
-    }
+	@Autowired
+	public JobCompletionNotificationListener(JdbcTemplate jdbcTemplate) {
+		this.jdbcTemplate = jdbcTemplate;
+	}
 
-    @Override
-    public void afterJob(JobExecution jobExecution) {
-        if (jobExecution.getStatus() == BatchStatus.COMPLETED) {
-            log.info("!!! JOB FINISHED! Time to verify the results");
+	@Override
+	public void afterJob(JobExecution jobExecution) {
+		if (jobExecution.getStatus() == BatchStatus.COMPLETED) {
+			log.info("!!! JOB FINISHED! Time to verify the results");
 
-            if (log.isDebugEnabled())
-                jdbcTemplate.query("SELECT * FROM event",
-                        (rs, row) -> new ServerEvent(
-                                rs.getString(1),
-                                rs.getString(2),
-                                rs.getLong(3),
-                                rs.getString(4),
-                                rs.getString(5),
-                                rs.getBoolean(6))
-                ).forEach(serverEvent -> log.debug("Found <" + serverEvent + "> in the database."));
-        }
-    }
+			int count = jdbcTemplate.queryForObject("SELECT count(*) FROM event", Integer.class);
+			log.info("Found <" + count + "> in the database.");
+			log.info("!!! JOB FINISHED! Time to verify the results");
+		}
+	}
 }

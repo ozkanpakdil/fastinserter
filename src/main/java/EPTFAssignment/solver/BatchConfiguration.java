@@ -1,5 +1,7 @@
 package EPTFAssignment.solver;
 
+import javax.sql.DataSource;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.batch.core.Job;
@@ -15,12 +17,14 @@ import org.springframework.batch.item.file.FlatFileItemReader;
 import org.springframework.batch.item.file.LineMapper;
 import org.springframework.batch.item.file.separator.JsonRecordSeparatorPolicy;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.context.properties.ConfigurationProperties;
+import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.PropertySource;
+import org.springframework.context.support.PropertySourcesPlaceholderConfigurer;
 import org.springframework.core.io.FileSystemResource;
-import org.springframework.scheduling.annotation.Scheduled;
-
-import javax.sql.DataSource;
 
 @Configuration
 @EnableBatchProcessing
@@ -28,7 +32,10 @@ public class BatchConfiguration {
     private static final Logger log = LoggerFactory.getLogger(BatchConfiguration.class);
     //used for reading chunk/paging
     int chunkSize = 100000;
-
+    
+    @Value(value = "${inFilePath}")
+    String inFilePath;
+    
     @Autowired
     public JobBuilderFactory jobBuilderFactory;
 
@@ -39,7 +46,7 @@ public class BatchConfiguration {
     @Bean
     public <T> FlatFileItemReader<T> reader() {
         FlatFileItemReader<T> reader = new FlatFileItemReader<T>();
-        reader.setResource(new FileSystemResource(Application.getInFilePath()));
+        reader.setResource(new FileSystemResource(inFilePath));
         reader.setRecordSeparatorPolicy(new JsonRecordSeparatorPolicy());
         reader.setLineMapper((LineMapper<T>) new EventJsonLineMapper());
 
@@ -63,7 +70,7 @@ public class BatchConfiguration {
 
     // tag::jobstep[]
     @Bean
-    public Job importUserJob(JobCompletionNotificationListener listener, Step step1) {
+    public Job importJsonJob(JobCompletionNotificationListener listener, Step step1) {
         return jobBuilderFactory.get("importJsonJob")
                 .incrementer(new RunIdIncrementer())
                 .listener(listener)
@@ -83,8 +90,4 @@ public class BatchConfiguration {
     }
     // end::jobstep[]
 
-    @Scheduled(fixedRate = 5000 * 12)
-    public void printCacheStats() {
-        log.info("IdUtils.getInstance().getIds().size()" + IdUtils.getInstance().getIds().size());
-    }
 }

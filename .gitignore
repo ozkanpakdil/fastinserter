@@ -7,3 +7,6 @@
 /output.sql
 /sample.json
 /sample2.json
+/out/
+/hsqldb/
+/gradle/

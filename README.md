@@ -4,7 +4,7 @@ How to run spring boot application
 ./gradlew bootRun -Pargs=example.data.json
 
 for big json file
-./gradlew bootRun -Pargs=sample.json -Dorg.gradle.jvmargs=-Xmx4g
+./gradlew bootRun -Pargs=sample.json -Dorg.gradle.jvmargs="-Xmx4g -XX:+UseG1GC -XX:+UseStringDeduplication"
 
 Test Result
 Chunk size :10000 jsonsize:8gb 100000000lines took 36m
@@ -13,10 +13,12 @@ running faster solution
 ./gradlew -PmainClass=FasterSolution -Pargs=sample.json execute 
 
 latest test with 8gb file took 33m. therefore spring boot beaten by 3 minutes :)
-./gradlew -PmainClass=FasterSolution -Pargs=sample.json execute -Dorg.gradle.jvmargs="-Xmx4g -XX:+UseG1GC -XX:+UseStringDeduplication"
+./gradlew -PmainClass=EPTFAssignment.solver.FasterSolution -Pargs=sample.json execute -Dorg.gradle.jvmargs="-Xmx4g -XX:+UseG1GC -XX:+UseStringDeduplication"
 
 
 For proper testing I implemented a json generator. you can easily generate 16gb json file. took 7 minutes in my laptop to run command below
 after gson cleared I re-run the command and it took 5.23 minutes.
 ./gradlew -PmainClass=data.generator.GenerateSampleJson execute -Pargs= -Dorg.gradle.jvmargs="-Xmx4g -XX:+UseG1GC -XX:+UseStringDeduplication"
 
+time :4m 48s
+./gradlew -PmainClass=data.generator.GenerateSampleJson execute -Pargs=200000 -Dorg.gradle.jvmargs="-Xmx4g -XX:+UseG1GC -XX:+UseStringDeduplication"

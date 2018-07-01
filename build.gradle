@@ -24,11 +24,13 @@ repositories {
 }
 
 dependencies {
-    compile("org.springframework.boot:spring-boot-starter-batch")
-    compile("org.hsqldb:hsqldb")
+    compile "org.springframework.boot:spring-boot-starter-batch"
+    compile "org.springframework.boot:spring-boot-starter-activemq"
+    compile "org.hsqldb:hsqldb"
     compile 'org.apache.commons:commons-lang3'
     compile 'org.json:json:20180130'
     compile 'commons-io:commons-io:2.6'
+    compile 'org.apache.activemq:activemq-broker'
     testCompile("org.springframework.boot:spring-boot-starter-test")
     compile 'org.junit.jupiter:junit-jupiter-api'
 }
@@ -38,8 +40,10 @@ bootRun {
         args project.args.split(',')
     }
 }
-task execute(type:JavaExec) {
-   main = mainClass
-   classpath = sourceSets.main.runtimeClasspath
-   args project.getProperty('args')
+if (project.hasProperty('args') && hasProperty('mainClass')) {
+	task execute(type:JavaExec) {
+	   main = mainClass
+	   classpath = sourceSets.main.runtimeClasspath
+	   args project.getProperty('args')
+	}
 }

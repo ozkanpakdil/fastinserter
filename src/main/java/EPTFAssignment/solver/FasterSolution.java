@@ -1,17 +1,27 @@
-import java.io.BufferedWriter;
+package EPTFAssignment.solver;
+
 import java.io.File;
-import java.io.FileWriter;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.Stack;
 import java.util.concurrent.ArrayBlockingQueue;
+import java.util.concurrent.BlockingDeque;
+import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.LinkedBlockingDeque;
 import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.LinkedTransferQueue;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TransferQueue;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.LineIterator;
@@ -26,14 +36,10 @@ import EPTFAssignment.solver.ServerEvent;
 public class FasterSolution {
 	private static final Logger log = LoggerFactory.getLogger(FasterSolution.class);
 	private String inFilePath;
-	ConcurrentMap<String, ServerEvent> eventsFromFile = new ConcurrentHashMap<>();
+	ConcurrentHashMap<String, ServerEvent> eventsFromFile = new ConcurrentHashMap();
 	int cpuCount = Runtime.getRuntime().availableProcessors();
-	// static Queue<String>[] idQueue = new ConcurrentLinkedQueue[cpuCount];
-	// private final static LinkedBlockingQueue<String>[] idQueue = new
-	// LinkedBlockingQueue[cpuCount];
-	// private final static ArrayBlockingQueue<String> idQueue = new
-	// ArrayBlockingQueue(cpuCount*100000);
-	ArrayBlockingQueue<String>[] idQueue = new ArrayBlockingQueue[cpuCount];
+	int maxPoolSize = cpuCount * 20;
+	TransferQueue<ServerEvent> idQueue = new LinkedTransferQueue();
 
 	Connection conn;
 	String dbFileName = "./hsqldbfastsol/data;hsqldb.log_data=false;hsqldb.default_table_type=CACHED;hsqldb.nio_data_file=true;hsqldb.nio_max_size=1024m";
@@ -42,8 +48,8 @@ public class FasterSolution {
 	Thread readerThread = null;
 	ThreadPoolExecutor executor = null;
 
-	public void run(String[] args) throws Exception {
-		inFilePath = args[0];
+	public void run(String filePath) throws Exception {
+		inFilePath = filePath;
 		File inFile = new File(inFilePath);
 		openDbConnection();
 		try {
@@ -59,20 +65,18 @@ public class FasterSolution {
 		}
 		log.info("TABLE CREATED");
 
-		for (int i = 0; i < idQueue.length; i++) {
-			idQueue[i] = new ArrayBlockingQueue<>(cpuCount * 10000);
-			// idQueue[i] = new ConcurrentLinkedQueue<>();
-			// idQueue[i]=new LinkedBlockingQueue<>();
-		}
-
 		log.info("CPU count:" + Runtime.getRuntime().availableProcessors());
-		executor = new ThreadPoolExecutor(1, cpuCount, 0L, TimeUnit.MILLISECONDS, new LinkedBlockingQueue<Runnable>());
+		executor = new ThreadPoolExecutor(cpuCount, maxPoolSize, 0L, TimeUnit.MILLISECONDS,
+				new LinkedBlockingQueue<Runnable>());
+
 		startFileReader(inFile);
+		startDBInserter();
 		while (!executor.isTerminated()) {
-			Thread.sleep(1000);
-			if (executor.getQueue().size() < cpuCount)
-				for (int i = 0; i < cpuCount; i++)
-					startDBInserter(i);
+			Thread.sleep(2000);
+			log.info("eventsFromFile:" + eventsFromFile.size() + " readers getCompletedTaskCount:"
+					+ executor.getCompletedTaskCount() + " queue:" + idQueue.size() + " active:"
+					+ executor.getActiveCount() + " readerQ:" + executor.getQueue().size());
+
 		}
 		conn.commit();
 		ResultSet r = st.executeQuery("SELECT COUNT(*) FROM event");
@@ -99,33 +103,37 @@ public class FasterSolution {
 					+ seFinished.getHost() + "'," + seFinished.getAlert() + ");");
 			eventsFromFile.remove(seStarted.getId() + seStarted.getState());
 			eventsFromFile.remove(seFinished.getId() + seFinished.getState());
+
 		}
 	}
 
-	void startDBInserter(int threadId) throws Exception {
-		if (executor.getQueue().size() < cpuCount) {
-			Runnable task = () -> {
-				try {
-					long lineCounter = 0;
-					while (idQueue[threadId].size() > 0) {
-						process(idQueue[threadId].poll());
-						if (++lineCounter % 100000 == 0) {
-							log.info("THREADID:" + threadId + " DBinserter at line:" + lineCounter + " eventsFromFile:"
-									+ eventsFromFile.size() + " idQueue:" + idQueue[threadId].size());
-						}
-						if (eventsFromFile.size() == 0) {
-							idQueue[threadId].clear();
-							System.gc();
-						}
+	void startDBInserter() throws Exception {
+		if (executor.getActiveCount() >= cpuCount)
+			return;
+		Runnable task = () -> {
+			while (Thread.currentThread().isAlive()) {
+				if (idQueue.remainingCapacity() == 0) {
+					Collection<ServerEvent> all = new ArrayList();
+					idQueue.drainTo(all);
+					all.stream().forEach(se -> eventsFromFile.putIfAbsent(se.getId() + se.getState(), se));
+					all.stream().forEach(se -> process(se.getId()));
+				} else {
+					ServerEvent se = idQueue.poll();
+
+					if (se != null) {
+						eventsFromFile.putIfAbsent(se.getId() + se.getState(), se);
+						process(se.getId());
 					}
-				} catch (Exception e) {
-					e.printStackTrace();
 				}
-				return;
-			};
-			if (!executor.isShutdown())
-				executor.execute(task);
-		}
+				if (eventsFromFile.size() == 0 && idQueue.size() == 0)
+					break;
+				if (eventsFromFile.size() > 0 && idQueue.size() == 0)
+					eventsFromFile.values().stream().forEach(se -> process(se.getId()));
+			}
+		};
+		if (!executor.isShutdown())
+			executor.execute(task);
+
 	}
 
 	public void openDbConnection() {
@@ -140,16 +148,7 @@ public class FasterSolution {
 	}
 
 	public void insert(String expression) {
-		// try {
-		// writer.write(expression + "\n");
-		// } catch (IOException e) {
-		// // TODO Auto-generated catch block
-		// e.printStackTrace();
-		// System.exit(2);
-		// }
-
 		try {
-			// st.execute(expression);
 			st.addBatch(expression);
 			if (++dbCounter % (cpuCount * 1000) == 0) {
 				st.executeBatch();
@@ -183,28 +182,23 @@ public class FasterSolution {
 					String line = it.nextLine();
 					JSONObject jo = new JSONObject(line);
 					ServerEvent se = null;
-					int threadId = (int) (lineCounter % cpuCount);
-					if (jo.has("type"))
-						se = new ServerEvent(jo.getString("id"), jo.getString("state"), jo.getLong("timestamp"),
-								jo.getString("type"), jo.getString("host"));
-					else
+					if (jo.isNull("type"))
 						se = new ServerEvent(jo.getString("id"), jo.getString("state"), jo.getLong("timestamp"), null,
 								null);
+					else
+						se = new ServerEvent(jo.getString("id"), jo.getString("state"), jo.getLong("timestamp"),
+								jo.getString("type"), jo.getString("host"));
 
-					eventsFromFile.putIfAbsent(se.getId() + se.getState(), se);
-					// if (!idQueue[threadId].contains(se.getId()))
-					idQueue[threadId].put(se.getId());
+					idQueue.put(se);
 					if (++lineCounter % (cpuCount * 10000) == 0) {
+						startDBInserter();
 						log.info("Filereader at line:" + lineCounter);
 						// Thread.sleep(eventsFromFile.size() / 10);
+						// eventsFromFile.values().parallelStream().forEach(v -> process(v.getId()));
 					}
 					se = null;
 				}
-				// file read ended
 				log.info("File read finished");
-				for (ServerEvent se : eventsFromFile.values()) {
-					process(se.getId());
-				}
 				executor.shutdown();
 			} catch (Exception e) {
 				e.printStackTrace();
@@ -216,5 +210,20 @@ public class FasterSolution {
 
 		log.info("Json file reader started!");
 
+	}
+
+	public static void main(String[] args) {
+		long startTime = System.currentTimeMillis();
+		FasterSolution f = new FasterSolution();
+		try {
+			f.run(args[0]);
+		} catch (Exception e) {
+			e.printStackTrace();
+		} finally {
+			long stopTime = System.currentTimeMillis();
+			long elapsedTime = stopTime - startTime;
+			System.out.println("elapsedTime:" + elapsedTime / 1000 + " secs");
+
+		}
 	}
 }

@@ -2,21 +2,20 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.context.junit4.SpringRunner;
 
-import EPTFAssignment.solver.FasterSolution;
-
+import data.generator.GenerateSampleJson;
 
 @RunWith(SpringRunner.class)
-@SpringBootTest(classes = FasterSolution.class)
-public class FasterSolutionTest {
+@SpringBootTest(classes = GenerateSampleJson.class)
+public class GenerateSampleJsonTest {
 
 	@Autowired
-	FasterSolution fs;
+	GenerateSampleJson jg;
 
 	@Test
-	public void runfasterSolTest() throws Exception {
-		fs.run("sample2.json");
+	public void jsonGeneratorTest() throws Exception {
+		jg.generateJson(null);
 	}
+
 }
