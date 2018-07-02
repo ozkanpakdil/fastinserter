@@ -53,11 +53,10 @@ public class FasterSolution {
 		File inFile = new File(inFilePath);
 		openDbConnection();
 		try {
-			st.execute( "CREATE TABLE event ("
-					+ "    id TEXT ," + "    state TEXT," + "    timestamp BIGINT,"
+			st.execute("CREATE TABLE event (" + "    id TEXT ," + "    state TEXT," + "    timestamp BIGINT,"
 					+ "    type TEXT," + "    host TEXT," + "    alert BOOLEAN" + ");");
 			// st.execute("CREATE UNIQUE INDEX uq_event ON event(id, state);");
-			
+
 			conn.commit();
 		} catch (Exception e) {
 			e.printStackTrace();
@@ -65,18 +64,17 @@ public class FasterSolution {
 		}
 		log.info("TABLE CREATED");
 		log.info("CPU count:" + Runtime.getRuntime().availableProcessors());
-		executor = new ThreadPoolExecutor(1, 2, 0L, TimeUnit.MILLISECONDS,
-				new LinkedBlockingQueue<Runnable>());
+		executor = new ThreadPoolExecutor(1, 2, 0L, TimeUnit.MILLISECONDS, new LinkedBlockingQueue<Runnable>());
 		log.info("executor.isShutdown():" + executor.isShutdown());
 
 		startReaders();
 		startReaders();
-//		startReaders();
-//		startReaders();
-//		startReaders();
-//		startReaders();
-//		startReaders();
-//		startReaders();
+		// startReaders();
+		// startReaders();
+		// startReaders();
+		// startReaders();
+		// startReaders();
+		// startReaders();
 		startFileReader(inFile);
 		while (!executor.isTerminated()) {
 			Thread.sleep(2000);
@@ -109,6 +107,7 @@ public class FasterSolution {
 			try {
 				LineIterator it = FileUtils.lineIterator(inFile, "UTF-8");
 				long lineCounter = 0;
+				ArrayList<ServerEvent> seList = new ArrayList();
 				while (it.hasNext()) {
 					String line = it.nextLine();
 					JSONObject jo = new JSONObject(line);
@@ -119,8 +118,21 @@ public class FasterSolution {
 					else
 						se = new ServerEvent(jo.getString("id"), jo.getString("state"), jo.getLong("timestamp"),
 								jo.getString("type"), jo.getString("host"));
-					idQueue.transfer(se);
-					if (++lineCounter %  100000 == 0) {
+					// idQueue.transfer(se);
+					seList.add(se);
+					if (lineCounter % 5000 == 0) {
+						seList.parallelStream().forEach(v -> {
+							try {
+								idQueue.transfer(v);
+							} catch (InterruptedException e) {
+								e.printStackTrace();
+							}
+						});
+						seList = new ArrayList();
+					}
+
+					if (++lineCounter % 100000 == 0) {
+
 						log.info("Filereader at line:" + lineCounter);
 						// Thread.sleep(eventsFromFile.size() / 10);
 						// eventsFromFile.values().parallelStream().forEach(v -> process(v.getId()));
@@ -155,7 +167,7 @@ public class FasterSolution {
 	public void insert(String expression) {
 		try {
 			st.addBatch(expression);
-			if (++dbCounter %  100000 == 0) {
+			if (++dbCounter % 100000 == 0) {
 				st.executeBatch();
 				conn.commit();
 			}

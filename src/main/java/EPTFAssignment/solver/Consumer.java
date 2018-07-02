@@ -7,7 +7,7 @@ import java.util.concurrent.TransferQueue;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class Consumer implements Callable<ConcurrentHashMap<String, ServerEvent>> {
+public class Consumer implements Runnable {
 	private static final Logger log = LoggerFactory.getLogger(Consumer.class);
 	int cpuCount = Runtime.getRuntime().availableProcessors();
 	public ConcurrentHashMap<String, ServerEvent> eventsFromFile = new ConcurrentHashMap();
@@ -47,9 +47,8 @@ public class Consumer implements Callable<ConcurrentHashMap<String, ServerEvent>
 	}
 
 	@Override
-	public ConcurrentHashMap<String, ServerEvent> call() throws Exception {
+	public void run() {
 		long counter = 0;
-		Thread.sleep(2000);
 		while (Thread.currentThread().isAlive()) {
 			try {
 				ServerEvent se = transferQueue.take();
@@ -66,7 +65,6 @@ public class Consumer implements Callable<ConcurrentHashMap<String, ServerEvent>
 				e.printStackTrace();
 			}
 		}
-		return eventsFromFile;
 	}
 
 	public void setMap(ConcurrentHashMap<String, ServerEvent> ll) {
