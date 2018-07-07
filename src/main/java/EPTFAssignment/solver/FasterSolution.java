@@ -38,13 +38,13 @@ import EPTFAssignment.solver.ServerEvent;
 public class FasterSolution {
 	private static final Logger log = LoggerFactory.getLogger(FasterSolution.class);
 	private String inFilePath;
-	TransferQueue<ServerEvent> idQueue = new LinkedTransferQueue();
+	ArrayBlockingQueue<ServerEvent> idQueue = new ArrayBlockingQueue(1000000);
 	List<Consumer> futuresList = new ArrayList<>();
 
 	Thread readerThread = null;
 	ThreadPoolExecutor executor = null;
 	Connection conn;
-	String dbFileName = "mydb.db";
+	String dbFileName = "//localhost:3306/test?useSSL=false";
 	Statement st = null;
 	int dbCounter = 0;
 
@@ -53,9 +53,12 @@ public class FasterSolution {
 		File inFile = new File(inFilePath);
 		openDbConnection();
 		try {
-			st.execute("CREATE TABLE event (" + "    id TEXT ," + "    state TEXT," + "    timestamp BIGINT,"
-					+ "    type TEXT," + "    host TEXT," + "    alert BOOLEAN" + ");");
-			// st.execute("CREATE UNIQUE INDEX uq_event ON event(id, state);");
+			st.execute("drop table if exists test.event;");
+			st.execute("SET GLOBAL binlog_format = 'ROW';");
+			st.execute("SET GLOBAL TRANSACTION ISOLATION LEVEL READ UNCOMMITTED;");		
+			st.execute("SET GLOBAL concurrent_insert = 2;");
+			st.execute("CREATE TABLE test.event (id varchar(15) ,state varchar(10),timestamp BIGINT,"
+					+ "    type varchar(15)," + "    host varchar(10)," + "    alert BOOLEAN" + ") ENGINE = MYISAM;");
 
 			conn.commit();
 		} catch (Exception e) {
@@ -64,42 +67,30 @@ public class FasterSolution {
 		}
 		log.info("TABLE CREATED");
 		log.info("CPU count:" + Runtime.getRuntime().availableProcessors());
-		executor = new ThreadPoolExecutor(1, 2, 0L, TimeUnit.MILLISECONDS, new LinkedBlockingQueue<Runnable>());
+		executor = new ThreadPoolExecutor(32, 32, 0L, TimeUnit.MILLISECONDS, new LinkedBlockingQueue<Runnable>());
 		log.info("executor.isShutdown():" + executor.isShutdown());
 
-		startReaders();
-		startReaders();
-		// startReaders();
-		// startReaders();
-		// startReaders();
-		// startReaders();
-		// startReaders();
-		// startReaders();
 		startFileReader(inFile);
 		while (!executor.isTerminated()) {
 			Thread.sleep(2000);
-			log.info(" readers getCompletedTaskCount:" + executor.getCompletedTaskCount() + " queue:" + idQueue.size()
-					+ " active:" + executor.getActiveCount() + " readerQ:" + executor.getQueue().size());
+			loginfo();
 			if (!readerThread.isAlive()) {
 				log.info("READER NOT ALIVE");
-				ConcurrentHashMap<String, ServerEvent> ll = new ConcurrentHashMap<>();
-				for (Consumer f : futuresList) {
-					log.info("left:" + f.getEventsFromFile().size());
-					ll.putAll(f.getEventsFromFile());
-				}
-				Consumer c = new Consumer(idQueue, this);
-				c.setMap(ll);
-				ll.values().parallelStream().forEach(v -> c.process(v.getId()));
-				executor.shutdownNow();
+				//executor.shutdownNow();
 			}
 		}
 		shutdownDB();
 	}
 
-	void startReaders() {
-		Consumer c = new Consumer(idQueue, this);
+	public void loginfo() {
+		log.info(" readers getCompletedTaskCount:" + executor.getCompletedTaskCount() + " queue:" + idQueue.size()
+				+ " active:" + executor.getActiveCount() + " readerQ:" + executor.getQueue().size());
+	}
+
+	void startInserter() {
+		Consumer c = new Consumer(idQueue);
 		futuresList.add(c);
-		executor.submit(c);
+		executor.execute(c);
 	}
 
 	void startFileReader(File inFile) throws Exception {
@@ -107,7 +98,6 @@ public class FasterSolution {
 			try {
 				LineIterator it = FileUtils.lineIterator(inFile, "UTF-8");
 				long lineCounter = 0;
-				ArrayList<ServerEvent> seList = new ArrayList();
 				while (it.hasNext()) {
 					String line = it.nextLine();
 					JSONObject jo = new JSONObject(line);
@@ -118,24 +108,14 @@ public class FasterSolution {
 					else
 						se = new ServerEvent(jo.getString("id"), jo.getString("state"), jo.getLong("timestamp"),
 								jo.getString("type"), jo.getString("host"));
-					// idQueue.transfer(se);
-					seList.add(se);
-					if (lineCounter % 5000 == 0) {
-						seList.parallelStream().forEach(v -> {
-							try {
-								idQueue.transfer(v);
-							} catch (InterruptedException e) {
-								e.printStackTrace();
-							}
-						});
-						seList = new ArrayList();
-					}
+					//log.info("sending");
+					idQueue.put(se);
 
 					if (++lineCounter % 100000 == 0) {
-
 						log.info("Filereader at line:" + lineCounter);
-						// Thread.sleep(eventsFromFile.size() / 10);
-						// eventsFromFile.values().parallelStream().forEach(v -> process(v.getId()));
+						startInserter();
+						startInserter();
+						loginfo();
 					}
 					se = null;
 				}
@@ -153,8 +133,8 @@ public class FasterSolution {
 
 	public void openDbConnection() {
 		try {
-			Class.forName("org.sqlite.JDBC");
-			conn = DriverManager.getConnection("jdbc:sqlite:" + dbFileName, "sa", "sa");
+			Class.forName("com.mysql.jdbc.Driver");
+			conn = DriverManager.getConnection("jdbc:mysql:" + dbFileName, "root", "sa");
 			st = conn.createStatement();
 			conn.setAutoCommit(false);
 			conn.commit();
@@ -166,11 +146,11 @@ public class FasterSolution {
 
 	public void insert(String expression) {
 		try {
-			st.addBatch(expression);
-			if (++dbCounter % 100000 == 0) {
-				st.executeBatch();
-				conn.commit();
-			}
+			st.execute(expression);
+			/*
+			 * st.addBatch(expression); if (++dbCounter % 100000 == 0) { st.executeBatch();
+			 * conn.commit(); }
+			 */
 		} catch (SQLException e) {
 			log.error(expression);
 			e.printStackTrace();

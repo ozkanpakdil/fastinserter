@@ -30,7 +30,7 @@ dependencies {
     compile 'org.apache.commons:commons-lang3'
     compile 'org.json:json:20180130'
     compile 'commons-io:commons-io:2.6'
-    compile 'org.xerial:sqlite-jdbc'
+    compile 'mysql:mysql-connector-java'
     compile 'org.apache.activemq:activemq-broker'
     testCompile("org.springframework.boot:spring-boot-starter-test")
     compile 'org.junit.jupiter:junit-jupiter-api'

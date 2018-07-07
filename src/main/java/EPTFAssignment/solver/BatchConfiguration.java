@@ -91,7 +91,7 @@ public class BatchConfiguration {
                 .build();
     }
     // end::jobstep[]
-    
+    /*
     @Value("org/springframework/batch/core/schema-drop-sqlite.sql")
     private Resource dropReopsitoryTables;
  
@@ -104,8 +104,8 @@ public class BatchConfiguration {
     @Bean
     public DataSource dataSource() {
         DriverManagerDataSource dataSource = new DriverManagerDataSource();
-        dataSource.setDriverClassName("org.sqlite.JDBC");
-        dataSource.setUrl("jdbc:sqlite:mydb.db");
+        dataSource.setDriverClassName("com.mysql.jdbc.Driver");
+        dataSource.setUrl("jdbc:mysql://localhost:3306/test?useSSL=false");
         return dataSource;
     }
     @Bean
@@ -125,5 +125,5 @@ public class BatchConfiguration {
         initializer.setDatabasePopulator(databasePopulator);
  
         return initializer;
-    }
+    }*/
 }
