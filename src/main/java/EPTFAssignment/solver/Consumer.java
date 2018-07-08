@@ -1,6 +1,7 @@
 package EPTFAssignment.solver;
 
 import java.io.BufferedWriter;
+import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.sql.Connection;
@@ -12,6 +13,7 @@ import java.util.Collection;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.ConcurrentHashMap;
 
+import org.apache.commons.io.FileUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -91,6 +93,7 @@ public class Consumer implements Runnable {
 			insert("LOAD DATA local INFILE '" + csvName + "' INTO TABLE test.event FIELDS TERMINATED BY ';' ;");
 			conn.commit();
 			conn.close();
+			FileUtils.deleteQuietly(new File(csvName));
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
