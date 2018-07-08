@@ -17,6 +17,7 @@ Application Server logs also have the additional attributes:
 type - type of log
 host - hostname
 Example:
+```
 {"id":"scsmbstgra", "state":"STARTED", type:"APPLICATION_LOG",
 host:"12345", "timestamp":1491377495212}
 {"id":"scsmbstgrb", "state":"STARTED", "timestamp":1491377495213}
@@ -25,7 +26,7 @@ host:"12345", "timestamp":1491377495212}
 host:"12345", "timestamp":1491377495217}
 {"id":"scsmbstgrc", "state":"STARTED", "timestamp":1491377495210}
 {"id":"scsmbstgrb", "state":"FINISHED", "timestamp":1491377495216}
-...
+```
 In the example above, the event scsmbstgrb duration is 1491377495216 - 1491377495213 = 3ms
 The longest event is scsmbstgrc (1491377495218 -1491377495210 = 8ms)
 
