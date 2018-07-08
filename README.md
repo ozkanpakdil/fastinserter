@@ -73,3 +73,5 @@ generating sample data
 ```
 ./gradlew -PmainClass=data.generator.GenerateSampleJson execute -Pargs=100000000 -Dorg.gradle.jvmargs="-Xmx4g -XX:+UseG1GC -XX:+UseStringDeduplication"
 ```
+
+latest test : 40000000 objects inserted in 2m 40s
