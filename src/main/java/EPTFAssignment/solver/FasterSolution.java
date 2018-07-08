@@ -30,7 +30,7 @@ public class FasterSolution {
 	Thread readerThread = null;
 	ThreadPoolExecutor executor = null;
 	Connection conn;
-	String dbFileName = "//localhost:3306/test?useSSL=false";
+	public static String dbFileName = "//localhost:3306/test?useSSL=false";
 	Statement st = null;
 	int dbCounter = 0;
 
