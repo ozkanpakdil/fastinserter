@@ -1,21 +1,21 @@
 # Coding Assignment 2
 
 Requirements
-*Java 8
-*Use of any open-source library is allowed
-*Program must use gradle build system to resolve dependencies, build and test
+* Java 8
+* Use of any open-source library is allowed
+* Program must use gradle build system to resolve dependencies, build and test
 
 # Summary
 
 Our custom-build server logs different events to a file. Every event has 2 entries in log - one entry when the event was started and another when
 the event was finished. The entries in log file have no specific order (it can happen that finish event is logged before event start)
 Every line in the file is a JSON object containing event data:
-*id - the unique event identifier
-*state - whether the event was started or finished (can have values "STARTED" or "FINISHED")
-*timestamp - the timestamp of the event in milliseconds
+* id - the unique event identifier
+* state - whether the event was started or finished (can have values "STARTED" or "FINISHED")
+* timestamp - the timestamp of the event in milliseconds
 Application Server logs also have the additional attributes:
-*type - type of log
-*host - hostname
+* type - type of log
+* host - hostname
 Example:
 ```
 {"id":"scsmbstgra", "state":"STARTED", type:"APPLICATION_LOG",
@@ -43,11 +43,11 @@ Type and Host if applicable
 
 # Additional points will be granted for:
 
-*Proper use of info and debug logging
-*Proper use of Object Oriented programming
-*Unit tests coverage
-*Multi-threaded solution
-*Program that can handle very large files (gigabytes)
+* Proper use of info and debug logging
+* Proper use of Object Oriented programming
+* Unit tests coverage
+* Multi-threaded solution
+* Program that can handle very large files (gigabytes)
 
 # How to run solution
 
