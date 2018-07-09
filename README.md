@@ -1,11 +1,11 @@
-#Coding Assignment 2
+# Coding Assignment 2
 
 Requirements
 Java 8
 Use of any open-source library is allowed
 Program must use gradle build system to resolve dependencies, build and test
 
-#Summary
+# Summary
 
 Our custom-build server logs different events to a file. Every event has 2 entries in log - one entry when the event was started and another when
 the event was finished. The entries in log file have no specific order (it can happen that finish event is logged before event start)
@@ -30,7 +30,7 @@ host:"12345", "timestamp":1491377495217}
 In the example above, the event scsmbstgrb duration is 1491377495216 - 1491377495213 = 3ms
 The longest event is scsmbstgrc (1491377495218 -1491377495210 = 8ms)
 
-#The program should:
+# The program should:
 
 Take the input file path as input argument
 Flag any long events that take longer that 4ms with a column in the database called "alert".
@@ -41,7 +41,7 @@ Event duration
 Type and Host if applicable
 "alert" true is applicable
 
-#Additional points will be granted for:
+# Additional points will be granted for:
 
 Proper use of info and debug logging
 Proper use of Object Oriented programming
@@ -49,6 +49,7 @@ Unit tests coverage
 Multi-threaded solution
 Program that can handle very large files (gigabytes)
 
+# How to run solution
 
 How to run spring boot application
 ```
