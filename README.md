@@ -13,6 +13,7 @@ Every line in the file is a JSON object containing event data:
 * id - the unique event identifier
 * state - whether the event was started or finished (can have values "STARTED" or "FINISHED")
 * timestamp - the timestamp of the event in milliseconds
+
 Application Server logs also have the additional attributes:
 * type - type of log
 * host - hostname
