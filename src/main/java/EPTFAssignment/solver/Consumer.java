@@ -1,6 +1,7 @@
 package EPTFAssignment.solver;
 
 import java.io.BufferedWriter;
+import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.sql.Connection;
@@ -12,6 +13,7 @@ import java.util.Collection;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.ConcurrentHashMap;
 
+import org.apache.commons.io.FileUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -20,7 +22,6 @@ public class Consumer implements Runnable {
 	int cpuCount = Runtime.getRuntime().availableProcessors();
 	public ConcurrentHashMap<String, ServerEvent> eventsFromFile = new ConcurrentHashMap();
 	Connection conn;
-	String dbFileName = "//localhost:3306/test?useSSL=false";
 	Statement st = null;
 	BufferedWriter writer = null;
 	String csvName = "";
@@ -54,12 +55,6 @@ public class Consumer implements Runnable {
 				seStarted.setAlert(true);
 				seFinished.setAlert(true);
 			}
-			// insert("INSERT delayed INTO event(id,state,timestamp,type,host,alert) VALUES ('" + seStarted.getId() + "','"
-			// + seStarted.getState() + "'," + seStarted.getTimestamp() + ",'" + seStarted.getType() + "','"
-			// + seStarted.getHost() + "'," + seStarted.getAlert() + ");");
-			// insert("INSERT delayed INTO event(id,state,timestamp,type,host,alert) VALUES ('" + seFinished.getId()
-			// + "','" + seFinished.getState() + "'," + seFinished.getTimestamp() + ",'" + seFinished.getType()
-			// + "','" + seFinished.getHost() + "'," + seFinished.getAlert() + ");");
 			writeToFile(seStarted);
 			writeToFile(seFinished);
 			eventsFromFile.remove(seStarted.getId() + seStarted.getState());
@@ -91,6 +86,7 @@ public class Consumer implements Runnable {
 			insert("LOAD DATA local INFILE '" + csvName + "' INTO TABLE test.event FIELDS TERMINATED BY ';' ;");
 			conn.commit();
 			conn.close();
+			FileUtils.deleteQuietly(new File(csvName));
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
@@ -103,7 +99,7 @@ public class Consumer implements Runnable {
 	public void openDbConnection() {
 		try {
 			Class.forName("com.mysql.jdbc.Driver");
-			conn = DriverManager.getConnection("jdbc:mysql:" + dbFileName, "root", "sa");
+			conn = DriverManager.getConnection("jdbc:mysql:" + FasterSolution.dbFileName, "root", "sa");
 			st = conn.createStatement();
 			st.execute("SET GLOBAL binlog_format = 'ROW';");
 			st.execute("SET GLOBAL TRANSACTION ISOLATION LEVEL READ UNCOMMITTED;");
@@ -119,13 +115,6 @@ public class Consumer implements Runnable {
 	public void insert(String expression) {
 		try {
 			st.execute(expression);
-
-			// st.addBatch(expression);
-			// if (++dbCounter % 2500 == 0) {
-			// st.executeBatch();
-			// conn.commit();
-			// }
-
 		} catch (SQLException e) {
 			log.error(expression);
 			e.printStackTrace();

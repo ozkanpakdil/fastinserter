@@ -10,3 +10,9 @@
 /out/
 /hsqldb/
 /gradle/
+/EPTFAssignment.solver.FasterSolution.class
+/EPTFAssignment.solver.ServerEvent.class
+/com.sun.jmx.remote.internal.ServerCommunicatorAdmin$Timeout.class
+/com.test.iml
+/mydb.db
+/mydb.db-journal
