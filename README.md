@@ -1,4 +1,5 @@
 # Coding Assignment 2
+This was a code assignment from `Credit Suisse Bank`, I got the job at 2017 and worked until 2020, now this is public, because there is no more Credit Suisse
 
 Requirements
 * Java 8
